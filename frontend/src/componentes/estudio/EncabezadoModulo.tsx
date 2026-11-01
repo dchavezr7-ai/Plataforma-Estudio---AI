@@ -20,7 +20,15 @@ export default function EncabezadoModulo({ tema, modulo }: { tema: TemaEstudio; 
           </span>
           {modulo.etiqueta}
         </h1>
-        <SelectorModulos idTema={tema.id} actual={modulo.id} />
+        <div className="mod-head-tools">
+          <span className="mod-head-progress" title="Progreso del tema">
+            <span className="mono">{tema.dominio} %</span>
+            <span className="progress-track" aria-hidden="true">
+              <span className="progress-fill" style={{ width: `${tema.dominio}%`, display: "block" }} />
+            </span>
+          </span>
+          <SelectorModulos idTema={tema.id} actual={modulo.id} />
+        </div>
       </div>
     </header>
   );

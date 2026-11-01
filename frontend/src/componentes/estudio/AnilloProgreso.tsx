@@ -12,6 +12,12 @@ export default function AnilloProgreso({ valor, tamano = 112 }: Props) {
   return (
     <div className="ring" style={{ width: tamano, height: tamano }} role="progressbar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} aria-label="Progreso del tema">
       <svg width={tamano} height={tamano} viewBox={`0 0 ${tamano} ${tamano}`} aria-hidden="true">
+        <defs>
+          <linearGradient id="cursa-anillo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="var(--color-primary-solid)" />
+            <stop offset="100%" stopColor="var(--color-accent)" />
+          </linearGradient>
+        </defs>
         <circle className="ring-pista" cx={tamano / 2} cy={tamano / 2} r={radio} strokeWidth={grosor} fill="none" />
         <circle
           className="ring-valor"
