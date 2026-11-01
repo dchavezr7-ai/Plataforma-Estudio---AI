@@ -13,6 +13,7 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable
 
+from app.adaptacion.motor import dificultad_objetivo
 from app.comun.errores import IARespuestaInvalida
 from app.pruebas import sesion
 from app.pruebas.analizador import PreguntaGenerada, analizar_preguntas, es_duplicada
@@ -20,12 +21,14 @@ from app.pruebas.calificacion import calificar
 from app.pruebas.distribucion import (
     CANTIDADES_PERMITIDAS,
     DIFICULTADES,
+    calcular_distribucion,
     distribucion_vacia,
     limite_por_contenido,
     peso,
     puntaje_maximo,
     resolver_distribucion,
 )
+
 from app.pruebas.errores import (
     ConfiguracionPruebaInvalida,
     ContenidoInsuficiente,
@@ -147,8 +150,17 @@ class ServicioPruebas:
         if entrada.cantidad_preguntas not in CANTIDADES_PERMITIDAS:
             opciones = ", ".join(str(c) for c in CANTIDADES_PERMITIDAS)
             raise ConfiguracionPruebaInvalida(f"La cantidad de preguntas debe ser una de estas: {opciones}.")
-        personalizada = entrada.distribucion_personalizada.model_dump() if entrada.distribucion_personalizada else None
-        distribucion = resolver_distribucion(entrada.cantidad_preguntas, entrada.dificultad, personalizada)
+        nivel = entrada.nivel_estudiante
+        objetivo = None
+        if entrada.dificultad == "adaptativa":
+            # MOD-07: el reparto por dificultad sale del nivel estimado del estudiante.
+            if nivel is None:
+                raise ConfiguracionPruebaInvalida("La dificultad adaptativa necesita el nivel estimado del estudiante.")
+            objetivo = dificultad_objetivo(nivel)
+            distribucion = calcular_distribucion(entrada.cantidad_preguntas, objetivo)
+        else:
+            personalizada = entrada.distribucion_personalizada.model_dump() if entrada.distribucion_personalizada else None
+            distribucion = resolver_distribucion(entrada.cantidad_preguntas, entrada.dificultad, personalizada)
         return {
             "cantidad": entrada.cantidad_preguntas,
             "dificultad": entrada.dificultad,
@@ -157,8 +169,10 @@ class ServicioPruebas:
             "modo_asistido": entrada.modo_asistido,
             "pausa_blindada": entrada.pausa_blindada,
             "cronometro_visible": entrada.cronometro_visible,
-        }
-
+            "nivel_estudiante": nivel,
+            "dificultad_objetivo": objetivo,
+        }        
+    
     # ------------------------------------------------------------ Generación con IA
 
     def _generar(self, texto: str, solicitud: SolicitudCrear, config: dict) -> list[PreguntaGenerada]:
@@ -176,7 +190,7 @@ class ServicioPruebas:
         def pedir(pedidas: dict[str, int], enfoque: list[str]) -> list[PreguntaGenerada]:
             bruto = self._proveedor.generar_json(
                 instrucciones=instrucciones_sistema(asistido),
-                entrada=construir_entrada(texto, pedidas, titulo_tema=solicitud.titulo_tema, evitar=[p.enunciado for p in aceptadas], enfoque=enfoque),
+                entrada=construir_entrada(texto, pedidas, titulo_tema=solicitud.titulo_tema, evitar=[p.enunciado for p in aceptadas], enfoque=enfoque, nivel_estudiante=config.get("nivel_estudiante")),
                 timeout_segundos=self._timeout,
             )
             validas, descartes = analizar_preguntas(bruto, fuente, modo_asistido=asistido)

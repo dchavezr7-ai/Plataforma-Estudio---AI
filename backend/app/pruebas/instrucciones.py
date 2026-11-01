@@ -1,6 +1,8 @@
 """Instrucciones enviadas a la IA para generar las preguntas de una prueba."""
 import json
 
+from app.adaptacion.motor import dificultad_objetivo
+
 _ROL = "Eres un evaluador académico experto en diseñar pruebas de selección múltiple rigurosas y justas."
 
 _REGLAS = """REGLAS ESTRICTAS
@@ -40,6 +42,21 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin texto antes ni después y s
 
 _TERMINOS_FORMATO = ',\n      "terminos": [{"texto": "término exacto del enunciado", "definicion": "definición breve"}]'
 
+# MOD-07: cómo calibrar la exigencia según la dificultad objetivo que sale del nivel del estudiante.
+_GUIA_POR_OBJETIVO = {
+    "facil": "el estudiante aún consolida lo básico: enunciados directos, un solo paso de razonamiento y distractores basados en confusiones frecuentes.",
+    "media": "el estudiante domina lo básico: pide relacionar conceptos y aplicarlos a ejemplos nuevos.",
+    "dificil": "el estudiante domina el tema: usa casos que combinen varios conceptos y distractores muy cercanos a la correcta, siempre sostenidos por el resumen.",
+}
+
+
+def _perfil_estudiante(nivel: float) -> str:
+    """MOD-07: el nivel calibra la exigencia DENTRO de cada dificultad; las cantidades pedidas no cambian."""
+    objetivo = dificultad_objetivo(nivel)
+    return (
+        f"Perfil del estudiante: nivel estimado {nivel:.2f} en una escala de 0 a 1 (dificultad objetivo: {objetivo}). "
+        f"Sin cambiar las cantidades pedidas por dificultad, calibra la exigencia: {_GUIA_POR_OBJETIVO[objetivo]}"
+    )
 
 def instrucciones_sistema(modo_asistido: bool) -> str:
     reglas = _REGLAS + ("\n" + _REGLA_TERMINOS if modo_asistido else "")
@@ -54,8 +71,9 @@ def construir_entrada(
     titulo_tema: str = "",
     evitar: list[str] | None = None,
     enfoque: list[str] | None = None,
+    nivel_estudiante: float | None = None,
 ) -> str:
-    """Mensaje de usuario: cantidades exactas, enfoque opcional, enunciados a evitar y el resumen."""
+    """Mensaje de usuario: cantidades exactas, perfil del estudiante (MOD-07), enfoque opcional, enunciados a evitar y el resumen."""
     partes = []
     if titulo_tema.strip():
         partes.append(f"Tema: {titulo_tema.strip()[:200]}")
@@ -64,6 +82,8 @@ def construir_entrada(
         + json.dumps({"facil": pedidas["facil"], "media": pedidas["media"], "dificil": pedidas["dificil"]})
         + f" (total {sum(pedidas.values())})."
     )
+    if nivel_estudiante is not None:
+        partes.append(_perfil_estudiante(nivel_estudiante))
     if enfoque:
         partes.append("Prioriza (sin descuidar el resto) las ideas de estas secciones del resumen: " + "; ".join(enfoque[:12]) + ".")
     if evitar:

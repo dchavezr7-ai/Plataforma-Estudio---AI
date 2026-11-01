@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as ExcepcionHTTP
 
+from app.adaptacion.enrutador import enrutador as enrutador_adaptacion
 from app.comun.errores import ErrorAplicacion
 from app.comun.respuestas import respuesta_error
 from app.configuracion.ajustes import obtener_ajustes
@@ -57,6 +58,7 @@ def crear_aplicacion() -> FastAPI:
     _registrar_manejadores_de_errores(aplicacion)
 
     aplicacion.include_router(enrutador_resumenes)
+    aplicacion.include_router(enrutador_adaptacion)
     aplicacion.include_router(enrutador_contenido)
     aplicacion.include_router(enrutador_mapas)
     aplicacion.include_router(enrutador_pruebas)

@@ -495,3 +495,19 @@ def test_conceptos_debiles_se_calculan_con_lo_fallado(servicio):
     final = servicio.finalizar(iniciada["sello"], {}, {})
     debiles = final["resultado"]["conceptos_debiles"]
     assert 1 <= len(debiles) <= 3 and all(d["falladas"] == d["total"] == 1 for d in debiles)
+
+
+# ------------------------------------------------------------------ MOD-07: dificultad adaptativa
+
+
+def test_dificultad_adaptativa_reparte_por_nivel_y_lo_envia_a_la_ia(servicio, ia):
+    entrada = solicitud(cantidad=10, dificultad="adaptativa")
+    entrada.configuracion.nivel_estudiante = 0.85
+    creada = servicio.crear(entrada)
+    assert creada["prueba"]["distribucion"] == {"facil": 0, "media": 2, "dificil": 8}
+    assert ia.llamadas and all("nivel estimado 0.85" in llamada["entrada"] for llamada in ia.llamadas)
+
+
+def test_dificultad_adaptativa_sin_nivel_se_rechaza(servicio):
+    with pytest.raises(ConfiguracionPruebaInvalida):
+        servicio.crear(solicitud(dificultad="adaptativa"))

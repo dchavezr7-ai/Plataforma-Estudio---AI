@@ -38,12 +38,15 @@ class DistribucionEntrada(BaseModel):
 
 class ConfiguracionEntrada(BaseModel):
     cantidad_preguntas: int = Field(ge=1, le=100)
-    dificultad: Literal["facil", "media", "dificil", "personalizada"]
+    dificultad: Literal["facil", "media", "dificil", "personalizada", "adaptativa"]
     distribucion_personalizada: DistribucionEntrada | None = None
     limite_minutos: int | None = Field(default=None, ge=1, le=240)
     modo_asistido: bool = False
     pausa_blindada: bool = False
     cronometro_visible: bool = True
+    # MOD-07: nivel estimado del estudiante en el tema (0 a 1). Obligatorio con dificultad «adaptativa».
+    nivel_estudiante: float | None = Field(default=None, ge=0, le=1)
+
 
 
 class SolicitudCrear(BaseModel):
