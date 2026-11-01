@@ -82,19 +82,6 @@
 /* ---------- Cabecera del tema ---------- */
 .topic-shell { display: flex; flex-direction: column; min-height: 0; }
 .topic-head { margin-bottom: 18px; }
-.topic-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin: 6px 0 10px; }
-.topic-title-block { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; position: relative; }
-.topic-selector { position: relative; max-width: 100%; }
-.topic-title-btn { display: inline-flex; align-items: center; gap: 8px; padding: 2px 10px 2px 0; margin-left: 0; background: transparent; border: none; border-radius: var(--radius-sm); cursor: pointer; text-align: left; max-width: 100%; transition: background var(--motion-micro) var(--ease-out), padding var(--motion-micro); }
-.topic-title-btn h1 { font-size: var(--fs-heading-1); margin: 0; }
-.topic-title-btn:hover { background: var(--color-surface-interactive); padding-left: 10px; margin-left: -10px; }
-.topic-title-chevron { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary-tint); color: var(--color-primary); flex-shrink: 0; transition: transform var(--motion-standard) var(--ease-out); }
-.topic-title-btn[aria-expanded="true"] .topic-title-chevron { transform: rotate(180deg); }
-.topic-mastery-chip { display: flex; flex-direction: column; gap: 6px; min-width: 150px; font-size: var(--fs-caption); color: var(--color-text-muted); flex-shrink: 0; }
-.topic-mastery-chip strong { color: var(--color-text); font-size: var(--fs-body-sm); }
-.study-tabs a { display: inline-flex; align-items: center; gap: 8px; }
-.study-tabs a svg { opacity: 0.75; }
-.study-tabs a.active svg { opacity: 1; color: var(--color-primary); }
 
 /* Command menu de temas */
 .sheet-backdrop { position: fixed; inset: 0; background: var(--color-scrim); z-index: 60; animation: overlay-in 160ms var(--ease-out); }
@@ -435,10 +422,6 @@ textarea.cm-def::placeholder, .cm-link-input::placeholder, .cm-title-input::plac
   .opt-grid { grid-template-columns: 1fr; }
   .opt-desc { min-height: 0; }
   .opt-num { min-width: 68px; }
-  .topic-title-row { flex-direction: column; align-items: stretch; gap: 12px; }
-  .topic-title-btn h1 { font-size: 1.4rem; }
-  .topic-mastery-chip { flex-direction: row; align-items: center; justify-content: space-between; }
-  .topic-mastery-chip .progress-track { flex: 1; margin-left: 10px; }
   .qitem-head { grid-template-columns: 26px 1fr; row-gap: 10px; }
   .qitem-side { grid-column: 2; justify-content: space-between; }
   .qitem-body { padding-left: 8px; }

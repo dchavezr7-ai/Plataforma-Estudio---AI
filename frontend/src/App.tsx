@@ -1,11 +1,13 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { leerRutaPersistida } from "./almacen/persistenciaSesion";
 import DisposicionApp from "./disposiciones/DisposicionApp";
 import DisposicionTema from "./disposiciones/DisposicionTema";
 import { EstadoCarga } from "./componentes/Estados";
 
 import PaginaInicioSesion from "./paginas/PaginaInicioSesion";
 import PaginaPanel from "./paginas/PaginaPanel";
+import PaginaTema from "./paginas/PaginaTema";
 import PaginaNoEncontrada from "./paginas/PaginaNoEncontrada";
 
 // Pantallas que arrastran librerías pesadas (gráficos, React Flow) se cargan bajo demanda.
@@ -25,7 +27,8 @@ const pagina = (elemento: JSX.Element) => <Suspense fallback={<EstadoCarga mensa
 export default function Aplicacion() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/panel" replace />} />
+      {/* Tras una recarga en "/" se vuelve a la última pantalla; sin sesión previa, al panel. */}
+      <Route path="/" element={<Navigate to={leerRutaPersistida() ?? "/panel"} replace />} />
       <Route path="/iniciar-sesion" element={<PaginaInicioSesion />} />
       {/* El primer acceso con Google ya crea el espacio del usuario: no hay registro aparte. */}
       <Route path="/registro" element={<Navigate to="/iniciar-sesion" replace />} />
@@ -36,7 +39,7 @@ export default function Aplicacion() {
         <Route path="/estudio/nuevo" element={pagina(<PaginaNuevoTema />)} />
 
         <Route path="/estudio/:id" element={<DisposicionTema />}>
-          <Route index element={<Navigate to="resumen" replace />} />
+          <Route index element={<PaginaTema />} />
           <Route path="resumen" element={pagina(<PaginaResumen />)} />
           <Route path="preguntas" element={pagina(<PaginaPreguntas />)} />
           <Route path="prueba" element={pagina(<PaginaPrueba />)} />

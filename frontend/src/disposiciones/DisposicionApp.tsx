@@ -5,6 +5,7 @@ import Encabezado from "../componentes/Encabezado";
 import NavegacionInferior from "../componentes/NavegacionInferior";
 import { useAutenticacion } from "../hooks/useAutenticacion";
 import { useBarraLateral } from "../hooks/useBarraLateral";
+import { guardarRutaPersistida } from "../almacen/persistenciaSesion";
 
 export default function DisposicionApp() {
   const { estaAutenticado } = useAutenticacion();
@@ -16,8 +17,13 @@ export default function DisposicionApp() {
     establecerMovilAbierto(false);
   }, [ubicacion.pathname]);
 
+  // La URL es la fuente de verdad de la navegación; se anota la última ruta para poder volver a ella.
+  useEffect(() => {
+    if (estaAutenticado) guardarRutaPersistida(`${ubicacion.pathname}${ubicacion.search}`);
+  }, [estaAutenticado, ubicacion.pathname, ubicacion.search]);
+
   if (!estaAutenticado) {
-    return <Navigate to="/iniciar-sesion" replace />;
+    return <Navigate to="/iniciar-sesion" replace state={{ from: `${ubicacion.pathname}${ubicacion.search}` }} />;
   }
 
   // Las pantallas de un tema (resumen, preguntas, prueba, mapa) usan todo el ancho

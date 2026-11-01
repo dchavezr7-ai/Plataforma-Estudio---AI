@@ -1,12 +1,15 @@
 import { useSyncExternalStore } from "react";
 import type { MapaMental, ResumenesGenerados } from "../tipos";
 import type { TipoActividad } from "../datos/actividades";
+import { guardarEstudioPersistido, leerEstudioPersistido } from "./persistenciaSesion";
 
 // -----------------------------------------------------------------------
-// Estado de la sesión de estudio, SOLO en memoria.
-// Contenido introducido, resúmenes generados y actividad viven mientras la
-// pestaña esté abierta; al recargar o cerrar, desaparecen. No hay base de
-// datos ni localStorage aquí, a propósito.
+// Estado de la sesión de estudio.
+// Contenido introducido, resúmenes generados, mapas y actividad viven en memoria y,
+// mientras haya una cuenta activa, se reflejan en sessionStorage (ver
+// persistenciaSesion.ts) para sobrevivir a F5 / Ctrl+R. Al cerrar sesión o cerrar la
+// pestaña desaparecen. Los PDF (File) nunca se guardan: no son serializables.
+// No hay base de datos ni localStorage aquí, a propósito.
 // -----------------------------------------------------------------------
 
 export interface ActividadSesion {
@@ -39,9 +42,56 @@ let estadoGlobal: EstadoSesion = { iniciadoEn: Date.now(), fuentes: {}, archivos
 const oyentes = new Set<() => void>();
 let siguienteId = 1;
 
+// --- Persistencia temporal (sessionStorage) ---------------------------------
+const RETARDO_GUARDADO_MS = 250;
+let usuarioPersistidoId: string | null = null;
+let temporizadorGuardado: number | undefined;
+
+function volcarAlmacenamiento() {
+  temporizadorGuardado = undefined;
+  if (!usuarioPersistidoId) return;
+  const { iniciadoEn, fuentes, resumenes, mapas, actividad } = estadoGlobal;
+  guardarEstudioPersistido({ usuarioId: usuarioPersistidoId, iniciadoEn, fuentes, resumenes, mapas, actividad });
+}
+
+function programarGuardado() {
+  if (!usuarioPersistidoId || typeof window === "undefined") return;
+  window.clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = window.setTimeout(volcarAlmacenamiento, RETARDO_GUARDADO_MS);
+}
+
+// Si la recarga llega antes de que venza el temporizador, se vuelca lo pendiente.
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    if (temporizadorGuardado !== undefined) {
+      window.clearTimeout(temporizadorGuardado);
+      volcarAlmacenamiento();
+    }
+  });
+}
+
+/** Empieza a reflejar el estudio de `idUsuario` en sessionStorage (tras iniciar sesión o restaurarla). */
+export function activarPersistenciaEstudio(idUsuario: string) {
+  usuarioPersistidoId = idUsuario;
+  programarGuardado();
+}
+
+/** Recupera lo guardado para `idUsuario` (si existe y es íntegro) y activa la persistencia. */
+export function restaurarEstudio(idUsuario: string) {
+  const guardado = leerEstudioPersistido(idUsuario);
+  if (guardado) {
+    const numeros = guardado.actividad.map((a) => Number(a.id.replace(/^act-/, ""))).filter(Number.isFinite);
+    siguienteId = Math.max(siguienteId, ...numeros, 0) + 1;
+    estadoGlobal = { ...estadoGlobal, iniciadoEn: guardado.iniciadoEn, fuentes: guardado.fuentes, resumenes: guardado.resumenes, mapas: guardado.mapas, actividad: guardado.actividad };
+    oyentes.forEach((oyente) => oyente());
+  }
+  usuarioPersistidoId = idUsuario;
+}
+
 function actualizar(siguiente: Partial<EstadoSesion>) {
   estadoGlobal = { ...estadoGlobal, ...siguiente };
   oyentes.forEach((oyente) => oyente());
+  programarGuardado();
 }
 
 function suscribir(oyente: () => void) {
@@ -59,6 +109,10 @@ export function obtenerSesion(): EstadoSesion {
 
 /** Olvida todo el contenido de estudio de la sesión (al cerrar sesión o cambiar de cuenta). */
 export function reiniciarSesionEstudio() {
+  // Se corta la persistencia ANTES de vaciar: un guardado pendiente no debe reescribir lo que se acaba de borrar.
+  if (typeof window !== "undefined") window.clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = undefined;
+  usuarioPersistidoId = null;
   actualizar({ iniciadoEn: Date.now(), fuentes: {}, archivos: {}, resumenes: {}, mapas: {}, actividad: [] });
 }
 

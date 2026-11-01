@@ -13,7 +13,7 @@ interface ValorContextoAutenticacion {
 const ContextoAutenticacion = createContext<ValorContextoAutenticacion | undefined>(undefined);
 
 export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
-  // Sin persistencia: al recargar la página la sesión empieza vacía.
+  // Se recupera de sessionStorage si la página se recargó; si no hay sesión guardada, empieza vacía.
   const [usuario, establecerUsuario] = useState<Usuario | null>(() => authService.obtenerUsuarioActual());
 
   const iniciarSesionConGoogle = useCallback(() => {

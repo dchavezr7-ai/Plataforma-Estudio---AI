@@ -19,6 +19,7 @@ import "./estilos/sistema.css";
 import "./estilos/acceso.css";
 import "./estilos/pruebas.css";
 import "./estilos/refinamientos.css";
+import "./estilos/estudio.css";
 
 // La comprobación del backend empieza ya, antes de que React termine de montar la interfaz.
 almacenBackend.iniciar();
