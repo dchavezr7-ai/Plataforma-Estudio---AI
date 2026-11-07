@@ -1,5 +1,6 @@
 import type { MapaMental, ResumenesGenerados, Usuario } from "../tipos";
 import type { TipoActividad } from "../datos/actividades";
+import { NIVELES, type RespuestaRegistrada } from "../utilidades/rendimiento";
 
 // -----------------------------------------------------------------------
 // Persistencia TEMPORAL de la sesión, exclusivamente en sessionStorage.
@@ -120,6 +121,8 @@ export interface EstudioPersistido {
   resumenes: Record<string, ResumenesGenerados>;
   mapas: Record<string, { mapa: MapaMental; huella: string }>;
   actividad: ActividadPersistida[];
+  /** MOD-08: respuestas registradas por tema (de ellas se derivan contadores, rachas y tiempos). */
+  rendimiento: Record<string, RespuestaRegistrada[]>;
 }
 
 function filtrarRegistro<T>(bruto: unknown, valido: (valor: unknown) => valor is T): Record<string, T> {
@@ -133,6 +136,18 @@ const esMapa = (v: unknown): v is { mapa: MapaMental; huella: string } =>
 const esActividad = (v: unknown): v is ActividadPersistida =>
   esObjeto(v) && esTexto(v.id) && esTexto(v.tipo) && esTexto(v.idTema) && esTexto(v.tituloTema) && esTexto(v.descripcion) && typeof v.at === "number";
 
+const esRespuestaRegistrada = (v: unknown): v is RespuestaRegistrada =>
+  esObjeto(v) &&
+  (NIVELES as readonly unknown[]).includes(v.dificultad) &&
+  typeof v.correcta === "boolean" &&
+  (v.segundos === null || (typeof v.segundos === "number" && Number.isFinite(v.segundos) && v.segundos >= 0)) &&
+  (v.origen === "practica" || v.origen === "prueba") &&
+  typeof v.at === "number";
+
+/** Conserva solo las respuestas íntegras; si falta el campo (datos de versiones anteriores) queda vacío. */
+const sanearRendimiento = (bruto: unknown): Record<string, RespuestaRegistrada[]> =>
+  Object.fromEntries(Object.entries(filtrarRegistro(bruto, Array.isArray)).map(([idTema, lista]) => [idTema, (lista as unknown[]).filter(esRespuestaRegistrada)]));
+
 /** Devuelve el estudio guardado solo si es íntegro y pertenece a `usuarioId`; las entradas dañadas se descartan una a una. */
 export function leerEstudioPersistido(usuarioId: string): EstudioPersistido | null {
   const bruto = leerSobre(CLAVES_SESION.estudio);
@@ -144,10 +159,11 @@ export function leerEstudioPersistido(usuarioId: string): EstudioPersistido | nu
     resumenes: filtrarRegistro(bruto.resumenes, esResumen),
     mapas: filtrarRegistro(bruto.mapas, esMapa),
     actividad: Array.isArray(bruto.actividad) ? bruto.actividad.filter(esActividad) : [],
+    rendimiento: sanearRendimiento(bruto.rendimiento),
   };
 }
 
-export const guardarEstudioPersistido = (estudio: EstudioPersistido) => escribirSobre(CLAVES_SESION.estudio, estudio);
+export const guardarEstudioPersistido = (estudio: Omit<EstudioPersistido, "rendimiento"> & { rendimiento?: EstudioPersistido["rendimiento"] }) => escribirSobre(CLAVES_SESION.estudio, estudio);
 
 // --- Última ruta visitada ----------------------------------------------------------------
 

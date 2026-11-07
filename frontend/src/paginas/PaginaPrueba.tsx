@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { useContextoTema } from "../disposiciones/contextoTema";
-import { useSesion, registrarActividad } from "../almacen/almacenSesion";
+import { useSesion, registrarActividad, registrarRespuestas } from "../almacen/almacenSesion";
+import { respuestasDeRevision } from "../utilidades/rendimiento";
 import * as studyService from "../servicios/servicioEstudio";
 import { cargarAjustes, guardarAjustes, obtenerResumenGeneral } from "../servicios/servicioPruebas";
 import { useControlPrueba } from "../hooks/useControlPrueba";
@@ -31,6 +32,7 @@ export default function PaginaPrueba() {
     const mezclado = Math.min(100, Math.round(tema.dominio * 0.35 + datos.resultado.porcentaje * 0.65));
     const actualizado = await studyService.actualizarDominioTema(tema.id, mezclado);
     if (actualizado) establecerTema(actualizado);
+    registrarRespuestas(tema.id, respuestasDeRevision(datos.revision));
     registrarActividad({ tipo: "prueba", idTema: tema.id, tituloTema: tema.titulo, descripcion: `Completaste una prueba con ${datos.resultado.porcentaje}% de aciertos.` });
     navegar(`/estudio/${tema.id}/resultados`, { state: datos });
   }

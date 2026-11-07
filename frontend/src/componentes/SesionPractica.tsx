@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { PreguntaEstudio } from "../tipos";
 import { useContextoTema } from "../disposiciones/contextoTema";
 import * as studyService from "../servicios/servicioEstudio";
+import { registrarRespuestas } from "../almacen/almacenSesion";
+import { segundosEntre } from "../utilidades/rendimiento";
 import PreguntaPractica from "./PreguntaPractica";
 import MedidorDominio from "./MedidorDominio";
 import Boton from "./Boton";
@@ -26,10 +28,14 @@ export default function SesionPractica({ preguntas, alResponder, alSalir }: Prop
   const [incorrecta, establecerIncorrecta] = useState(0);
   const [terminada, establecerTerminada] = useState(false);
   const [ronda, establecerRonda] = useState(0);
+  /** MOD-08: instante en que se mostró la pregunta actual (tiempo por pregunta). */
+  const inicioPregunta = useRef(Date.now());
 
   function manejarRespondida(idPregunta: string, esCorrecta: boolean) {
     if (esCorrecta) establecerCorrecta((c) => c + 1);
     else establecerIncorrecta((c) => c + 1);
+    const pregunta = preguntas.find((p) => p.id === idPregunta);
+    if (pregunta) registrarRespuestas(tema.id, [{ dificultad: pregunta.dificultad, correcta: esCorrecta, segundos: segundosEntre(inicioPregunta.current, Date.now()), origen: "practica" }]);
     alResponder(idPregunta, esCorrecta);
   }
 
@@ -44,6 +50,7 @@ export default function SesionPractica({ preguntas, alResponder, alSalir }: Prop
       await studyService.incrementarPreguntasRespondidas(tema.id, preguntas.length);
       if (actualizado) establecerTema(actualizado);
     } else {
+      inicioPregunta.current = Date.now();
       establecerIndiceActual((i) => i + 1);
     }
   }
@@ -53,6 +60,7 @@ export default function SesionPractica({ preguntas, alResponder, alSalir }: Prop
     establecerCorrecta(0);
     establecerIncorrecta(0);
     establecerTerminada(false);
+    inicioPregunta.current = Date.now();
     establecerRonda((r) => r + 1);
   }
 

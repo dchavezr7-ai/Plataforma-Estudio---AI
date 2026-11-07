@@ -2,10 +2,11 @@ import { useSyncExternalStore } from "react";
 import type { MapaMental, ResumenesGenerados } from "../tipos";
 import type { TipoActividad } from "../datos/actividades";
 import { guardarEstudioPersistido, leerEstudioPersistido } from "./persistenciaSesion";
+import { anadirRespuestas, type RespuestaRegistrada } from "../utilidades/rendimiento";
 
 // -----------------------------------------------------------------------
 // Estado de la sesión de estudio.
-// Contenido introducido, resúmenes generados, mapas y actividad viven en memoria y,
+// Contenido introducido, resúmenes generados, mapas, actividad y rendimiento (MOD-08) viven en memoria y,
 // mientras haya una cuenta activa, se reflejan en sessionStorage (ver
 // persistenciaSesion.ts) para sobrevivir a F5 / Ctrl+R. Al cerrar sesión o cerrar la
 // pestaña desaparecen. Los PDF (File) nunca se guardan: no son serializables.
@@ -36,9 +37,11 @@ interface EstadoSesion {
   resumenes: Record<string, ResumenesGenerados>;
   mapas: Record<string, MapaGuardado>;
   actividad: ActividadSesion[];
+  /** MOD-08: respuestas de práctica y pruebas por tema; el rendimiento se deriva con `calcularRendimiento`. */
+  rendimiento: Record<string, RespuestaRegistrada[]>;
 }
 
-let estadoGlobal: EstadoSesion = { iniciadoEn: Date.now(), fuentes: {}, archivos: {}, resumenes: {}, mapas: {}, actividad: [] };
+let estadoGlobal: EstadoSesion = { iniciadoEn: Date.now(), fuentes: {}, archivos: {}, resumenes: {}, mapas: {}, actividad: [], rendimiento: {} };
 const oyentes = new Set<() => void>();
 let siguienteId = 1;
 
@@ -50,8 +53,8 @@ let temporizadorGuardado: number | undefined;
 function volcarAlmacenamiento() {
   temporizadorGuardado = undefined;
   if (!usuarioPersistidoId) return;
-  const { iniciadoEn, fuentes, resumenes, mapas, actividad } = estadoGlobal;
-  guardarEstudioPersistido({ usuarioId: usuarioPersistidoId, iniciadoEn, fuentes, resumenes, mapas, actividad });
+  const { iniciadoEn, fuentes, resumenes, mapas, actividad, rendimiento } = estadoGlobal;
+  guardarEstudioPersistido({ usuarioId: usuarioPersistidoId, iniciadoEn, fuentes, resumenes, mapas, actividad, rendimiento });
 }
 
 function programarGuardado() {
@@ -82,7 +85,7 @@ export function restaurarEstudio(idUsuario: string) {
   if (guardado) {
     const numeros = guardado.actividad.map((a) => Number(a.id.replace(/^act-/, ""))).filter(Number.isFinite);
     siguienteId = Math.max(siguienteId, ...numeros, 0) + 1;
-    estadoGlobal = { ...estadoGlobal, iniciadoEn: guardado.iniciadoEn, fuentes: guardado.fuentes, resumenes: guardado.resumenes, mapas: guardado.mapas, actividad: guardado.actividad };
+    estadoGlobal = { ...estadoGlobal, iniciadoEn: guardado.iniciadoEn, fuentes: guardado.fuentes, resumenes: guardado.resumenes, mapas: guardado.mapas, actividad: guardado.actividad, rendimiento: guardado.rendimiento };
     oyentes.forEach((oyente) => oyente());
   }
   usuarioPersistidoId = idUsuario;
@@ -113,7 +116,7 @@ export function reiniciarSesionEstudio() {
   if (typeof window !== "undefined") window.clearTimeout(temporizadorGuardado);
   temporizadorGuardado = undefined;
   usuarioPersistidoId = null;
-  actualizar({ iniciadoEn: Date.now(), fuentes: {}, archivos: {}, resumenes: {}, mapas: {}, actividad: [] });
+  actualizar({ iniciadoEn: Date.now(), fuentes: {}, archivos: {}, resumenes: {}, mapas: {}, actividad: [], rendimiento: {} });
 }
 
 export function establecerFuenteTema(idTema: string, contenido: string) {
@@ -133,12 +136,21 @@ export function eliminarDatosTema(idTema: string) {
     archivos: sinClave(estadoGlobal.archivos),
     resumenes: sinClave(estadoGlobal.resumenes),
     mapas: sinClave(estadoGlobal.mapas),
+    rendimiento: sinClave(estadoGlobal.rendimiento),
   });
 }
 
 export function registrarActividad(entrada: Omit<ActividadSesion, "id" | "at">) {
   const elemento: ActividadSesion = { ...entrada, id: `act-${siguienteId++}`, at: Date.now() };
   actualizar({ actividad: [elemento, ...estadoGlobal.actividad].slice(0, 50) });
+}
+
+/** MOD-08: añade respuestas (práctica o prueba) al registro de rendimiento del tema. */
+export function registrarRespuestas(idTema: string, respuestas: Omit<RespuestaRegistrada, "at">[]) {
+  if (respuestas.length === 0) return;
+  const at = Date.now();
+  const previas = estadoGlobal.rendimiento[idTema] ?? [];
+  actualizar({ rendimiento: { ...estadoGlobal.rendimiento, [idTema]: anadirRespuestas(previas, respuestas.map((r) => ({ ...r, at }))) } });
 }
 
 export function guardarResumenes(idTema: string, tituloTema: string, resultado: ResumenesGenerados) {
