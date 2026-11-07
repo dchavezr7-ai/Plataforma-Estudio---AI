@@ -1,6 +1,7 @@
-"""Módulo `preguntas`: reservado para una futura etapa.
+"""Preguntas de práctica (MOD-03).
 
-Hoy esta funcionalidad es SIMULADA en el frontend y no usa OpenAI. Cuando se
-implemente, seguirá la misma estructura que `resumenes/`:
-enrutador → servicio → dominio, con el proveedor de IA inyectado.
+Genera preguntas de opción múltiple a partir del resumen general de un tema.
+Reutiliza el prompt, el analizador y la distribución de dificultad de
+`app.pruebas`, y expone POST /api/preguntas/generar. Sin base de datos: el
+cliente conserva las preguntas en memoria.
 """

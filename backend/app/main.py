@@ -13,6 +13,7 @@ from app.contenido.enrutador import enrutador as enrutador_contenido
 from app.mapas_conceptuales.enrutador import enrutador as enrutador_mapas
 from app.pruebas.enrutador import enrutador as enrutador_pruebas
 from app.resumenes.enrutador import enrutador as enrutador_resumenes
+from app.preguntas.enrutador import enrutador as enrutador_preguntas
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ def crear_aplicacion() -> FastAPI:
     aplicacion.include_router(enrutador_contenido)
     aplicacion.include_router(enrutador_mapas)
     aplicacion.include_router(enrutador_pruebas)
+    aplicacion.include_router(enrutador_preguntas)
 
     @aplicacion.get("/api/salud", tags=["sistema"])
     def salud(respuesta: Response):
