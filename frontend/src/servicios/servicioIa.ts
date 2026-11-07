@@ -3,6 +3,7 @@ import { resumenes } from "../datos/resumenes";
 import { obtenerPreguntasDelTema } from "../datos/preguntas";
 import { mapasMentales, construirMapaMentalRespaldo } from "../datos/mapasMentales";
 import { retardoSimulado } from "../utilidades/retardoSimulado";
+import { obtenerPreguntasDelTema as obtenerPreguntasConIa, puedeGenerarConIa } from "./servicioPreguntas";
 
 // -----------------------------------------------------------------------
 // Datos simulados de Preguntas, Prueba y Mapa conceptual (módulos aún no
@@ -81,6 +82,8 @@ function construirPreguntasGenericas(idTema: string, titulo: string): PreguntaEs
 }
 
 export async function generarPreguntas(idTema: string, titulo = "este tema"): Promise<PreguntaEstudio[]> {
+  // MOD-03: con resumen general disponible, las preguntas las genera la IA (backend). Sin resumen, banco local.
+  if (puedeGenerarConIa(idTema)) return obtenerPreguntasConIa(idTema, titulo);
   const existente = obtenerPreguntasDelTema(idTema);
   const resultado = existente.length > 0 ? existente : construirPreguntasGenericas(idTema, titulo);
   return retardoSimulado(resultado, 1000);
